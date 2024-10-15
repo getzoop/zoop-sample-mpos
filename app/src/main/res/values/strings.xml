@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">mPOSApp</string>
+    <string name="payment_option">Opção de pagamento</string>
+    <string name="installments">Parcelas</string>
+    <string name="enter_the_value">Digite o valor</string>
+    <string name="button_continue">Continuar</string>
+    <string name="button_close">Fechar</string>
+    <string name="enter">insira</string>
+    <string name="qRCode_token">Token QRCode</string>
+    <string name="cancel_operation">Cancelar operação</string>
+    <string name="message_invalid_amount">Digite um valor válido!</string>
+    <string name="message_invalid_installment">Digite um valor de parcelas válido!</string>
+</resources>
