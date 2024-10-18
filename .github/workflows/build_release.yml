@@ -8,8 +8,8 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     env:
-      GITHUB_USER: ${{ secrets.REPO_USER }}
-      GITHUB_PAT: ${{ secrets.REPO_PAT }}
+      GITHUB_USER: ${{ secrets.ORG_ZOOP_SDK_GITHUB_USER }}
+      GITHUB_PAT: ${{ secrets.ORG_ZOOP_SDK_GITHUB_PASSWORD }}
 
     steps:
       - name: Checkout
