@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     name: Build APK
-    runs-on: pagzoop
+    runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -45,7 +45,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: build
-    runs-on: pagzoop
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
