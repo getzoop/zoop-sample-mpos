@@ -58,7 +58,6 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Extract Version from Dependency
-        id: get_version
         run: |
           VERSION=$(grep -oP 'implementation\("br\.zoop\.pos\.plugin:mpos:\K[^"]+' app/build.gradle)
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
@@ -70,23 +69,25 @@ jobs:
           path: .
           merge-multiple: true
 
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.VERSION }}
-          release_name: ${{ env.VERSION }}
-          draft: false
-          prerelease: false
+      - name: Rename Release Assets
+        run: |
+          if ! mv -T \
+            app-debug.apk \
+            app-debug-${{ env.VERSION }}.apk
+          then
+            echo "::error title=APK renaming::Failed to rename the APK asset to add the version suffix."
+            exit 1
+          fi
 
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
+      - name: Launch Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app-debug.apk
-          asset_name: app-debug-${{ env.VERSION }}.apk
-          asset_content_type: application/vnd.android.package-archive
+          name: ${{ env.VERSION }}
+          tag_name: ${{ env.VERSION }}
+          target_commitish: main
+          files: app-debug-${{ env.VERSION }}.apk
+          fail_on_unmatched_files: true
+          prerelease: false
+          draft: false
