@@ -41,10 +41,12 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          overwrite: false
+          if-no-files-found: error
 
   release:
     name: Create GitHub Release
@@ -62,10 +64,11 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Download APK
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: app-debug
           path: .
+          merge-multiple: true
 
       - name: Create Release
         id: create_release
