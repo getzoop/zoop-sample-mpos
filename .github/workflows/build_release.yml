@@ -1,14 +1,18 @@
 name: Build Release
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
     name: Build APK
-    runs-on: pagzoop
+    runs-on: ubuntu-latest
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_USER: ${{ secrets.ORG_ZOOP_SDK_GITHUB_USER }}
+      GITHUB_PAT: ${{ secrets.ORG_ZOOP_SDK_GITHUB_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -37,49 +41,53 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          overwrite: false
+          if-no-files-found: error
 
   release:
     name: Create GitHub Release
     needs: build
-    runs-on: pagzoop
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Extract Version from Dependency
-        id: get_version
         run: |
           VERSION=$(grep -oP 'implementation\("br\.zoop\.pos\.plugin:mpos:\K[^"]+' app/build.gradle)
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
       - name: Download APK
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: app-debug
           path: .
+          merge-multiple: true
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Rename Release Assets
+        run: |
+          if ! mv -T \
+            app-debug.apk \
+            app-debug-${{ env.VERSION }}.apk
+          then
+            echo "::error title=APK renaming::Failed to rename the APK asset to add the version suffix."
+            exit 1
+          fi
+
+      - name: Launch Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ env.VERSION }}
-          release_name: Release v${{ env.VERSION }}
-          draft: false
+          name: ${{ env.VERSION }}
+          tag_name: ${{ env.VERSION }}
+          target_commitish: main
+          files: app-debug-${{ env.VERSION }}.apk
+          fail_on_unmatched_files: true
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app-debug.apk
-          asset_name: app-debug-${{ env.VERSION }}.apk
-          asset_content_type: application/vnd.android.package-archive
+          draft: false
