@@ -114,7 +114,7 @@ fun MainScreen(viewModel: MainViewModel) {
     MPOSPluginManager().initialize(LocalContext.current)
     var isPaymentPix by remember { mutableStateOf(false) }
 
-    MPOSPlugin(Zoop.constructorParameters()).run(Zoop::plug)
+    Zoop.make<MPOSPlugin>().run(Zoop::plug)
     Log.d("MainScreen", "Status: ${viewModel.state.status}")
 
     Column(
