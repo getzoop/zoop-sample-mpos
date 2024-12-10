@@ -16,6 +16,7 @@ sealed class MainEvent {
     object OnOptionPayment : MainEvent()
     object OnDisplayNone : MainEvent()
     data class OnStartPix(val amount: Long) : MainEvent()
+    object OnPixNFC : MainEvent()
     object OnStartCancellation : MainEvent()
     object OnCancelAction : MainEvent()
     class OnSelectTransaction(val transaction: VoidTransaction) : MainEvent()
