@@ -24,11 +24,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -114,7 +112,9 @@ fun MainScreen(viewModel: MainViewModel) {
     MPOSPluginManager().initialize(LocalContext.current)
     var isPaymentPix by remember { mutableStateOf(false) }
 
-    Zoop.make<MPOSPlugin>().run(Zoop::plug)
+    Zoop.findPlugin<MPOSPlugin>() ?: MPOSPlugin(Zoop.constructorParameters()).run(
+        Zoop::plug
+    )
     Log.d("MainScreen", "Status: ${viewModel.state.status}")
 
     Column(
@@ -241,13 +241,20 @@ fun MainScreen(viewModel: MainViewModel) {
                     alignment = Alignment.Center
                 )
 
-
-
                 Spacer(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                 )
+
+                PixNFCText()
+
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                )
+
                 CancelButton(handler = viewModel::handle)
             }
         }
@@ -493,6 +500,18 @@ fun CancelButton(handler: (MainEvent) -> Unit) {
             color = Color.Black
         )
     }
+}
+
+@Composable
+fun PixNFCText() {
+    Text(
+        text = stringResource(R.string.pix_nfc_transaction),
+        modifier = Modifier.padding(horizontal = 20.dp),
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color.Black,
+        textAlign = TextAlign.Center
+    )
 }
 
 @Composable
