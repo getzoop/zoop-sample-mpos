@@ -19,6 +19,7 @@ import com.zoop.pos.plugin.DashboardTokenResponse
 import com.zoop.pos.plugin.ZoopFoundationPlugin
 import com.zoop.pos.requestfield.MessageCallbackRequestField
 import com.zoop.pos.requestfield.QRCodeCallbackRequestField
+import com.zoop.pos.requestfield.TransactionIdCallbackRequestField
 import com.zoop.pos.type.Callback
 import com.zoop.pos.type.Option
 import com.zoop.pos.type.Request
@@ -61,6 +62,7 @@ class MainViewModel : ViewModel() {
             )
 
             is MainEvent.OnStartPix -> pix(event.amount)
+            is MainEvent.OnPixNFC -> {}
             MainEvent.OnStartCancellation -> void()
             MainEvent.OnCancelAction -> cancelAction()
             MainEvent.OnDisplayNone -> restoreUI()
@@ -306,9 +308,15 @@ class MainViewModel : ViewModel() {
                 override fun onFail(error: Throwable) {
                 }
             })
-            .userInputCallback(object : Callback<UserInput>() {
-                override fun onFail(error: Throwable) {}
-                override fun onSuccess(response: UserInput) {}
+            .transactionIdCallback(object :
+                Callback<TransactionIdCallbackRequestField.transactionIdData>() {
+                override fun onSuccess(response: TransactionIdCallbackRequestField.transactionIdData) {
+                    Log.d(TAG, "onSuccess: response $response")
+                }
+
+                override fun onFail(error: Throwable) {
+                    Log.e(TAG, "onFail: error ${error.printStackTrace()}")
+                }
             })
             .qrCodeCallback(object : Callback<QRCodeCallbackRequestField.QRCodeData>() {
                 override fun onSuccess(response: QRCodeCallbackRequestField.QRCodeData) {
