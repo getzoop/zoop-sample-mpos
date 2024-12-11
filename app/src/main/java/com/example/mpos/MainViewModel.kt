@@ -247,7 +247,8 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
-                    Log.d(TAG, "onFail ${error.message}")
+                    error.printStackTrace()
+                    Log.e(TAG, "onFail ${error.message}")
                     val message = if (error.message?.contains("invalid session") == true) {
                         "Não foi realizado um login"
                     } else {
@@ -265,7 +266,8 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
-                    Log.d(TAG, "messageCallback fail")
+                    error.printStackTrace()
+                    Log.e(TAG, "messageCallback fail")
                 }
             })
             .build()
