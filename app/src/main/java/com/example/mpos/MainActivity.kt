@@ -230,7 +230,13 @@ fun MainScreen(viewModel: MainViewModel) {
         }
 
         AnimatedVisibility(visible = viewModel.state.status == Status.MESSAGE) {
-            Text(text = viewModel.state.message)
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                text = viewModel.state.message,
+                textAlign = TextAlign.Center
+            )
         }
 
         AnimatedVisibility(
