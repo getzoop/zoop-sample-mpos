@@ -114,7 +114,9 @@ fun MainScreen(viewModel: MainViewModel) {
     MPOSPluginManager().initialize(LocalContext.current)
     var isPaymentPix by remember { mutableStateOf(false) }
 
-    Zoop.make<MPOSPlugin>().run(Zoop::plug)
+    Zoop.findPlugin<MPOSPlugin>() ?: MPOSPlugin(Zoop.constructorParameters()).run(
+        Zoop::plug
+    )
     Log.d("MainScreen", "Status: ${viewModel.state.status}")
 
     Column(
@@ -212,6 +214,19 @@ fun MainScreen(viewModel: MainViewModel) {
                     color = Color.White
                 )
             }
+        }
+
+        Button(
+            onClick = { viewModel.handle(MainEvent.TableLoad) },
+            modifier = Modifier.padding(5.dp)
+        ) {
+            Text(
+                text = "Carga de tabela",
+                modifier = Modifier.padding(8.dp),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
 
         AnimatedVisibility(visible = viewModel.state.status == Status.MESSAGE) {
@@ -512,7 +527,7 @@ fun AssembleVoidTransactionList(state: MainState, handler: (MainEvent) -> Unit) 
                     .clickable { handler(MainEvent.OnSelectTransaction(item)) },
             ) {
                 Text(
-                    text = "R$ " + item.amount,
+                    text = "R$ " + item.value,
                     modifier = Modifier
                         .padding(horizontal = 10.dp)
                         .align(Alignment.CenterVertically),
@@ -521,7 +536,7 @@ fun AssembleVoidTransactionList(state: MainState, handler: (MainEvent) -> Unit) 
                 )
 
                 Text(
-                    text = "${item.date} ${item.time}",
+                    text = "${item.date} ${item.hour}",
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .weight(1.5f)

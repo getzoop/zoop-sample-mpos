@@ -8,14 +8,13 @@ import androidx.lifecycle.ViewModel
 import com.zoop.pos.Zoop
 import com.zoop.pos.collection.SmsParameters
 import com.zoop.pos.collection.TransactionData
-import com.zoop.pos.collection.UserInput
-import com.zoop.pos.collection.UserInputType
 import com.zoop.pos.collection.UserSelection
 import com.zoop.pos.collection.VoidTransaction
 import com.zoop.pos.exception.ZoopRequestCanceledException
 import com.zoop.pos.plugin.DashboardConfirmationResponse
 import com.zoop.pos.plugin.DashboardThemeResponse
 import com.zoop.pos.plugin.DashboardTokenResponse
+import com.zoop.pos.plugin.HttpTableLoadResponse
 import com.zoop.pos.plugin.ZoopFoundationPlugin
 import com.zoop.pos.requestfield.MessageCallbackRequestField
 import com.zoop.pos.requestfield.QRCodeCallbackRequestField
@@ -25,8 +24,8 @@ import com.zoop.pos.type.Request
 import com.zoop.sdk.plugin.mpos.MPOSPlugin
 import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothDevice
 import com.zoop.sdk.plugin.mpos.request.PairingStatus
+import com.zoop.sdk.plugin.mpos.request.PayResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSDiscoveryResponse
-import com.zoop.sdk.plugin.mpos.request.mPOSPaymentResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSPixPaymentResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSSendSMSResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSTableLoadResponse
@@ -38,7 +37,7 @@ class MainViewModel : ViewModel() {
 
     var state by mutableStateOf(MainState(status = Status.NONE))
         private set
-    private var voidTransaction: UserSelection<VoidTransaction>? = null
+    private var voidTransaction: UserSelection<TransactionData>? = null
     private var paymentRequest: Request? = null
     private var voidRequest: Request? = null
     private var loginRequest: Request? = null
@@ -70,6 +69,7 @@ class MainViewModel : ViewModel() {
             }
 
             is MainEvent.OnSelectBtDevice -> bluetoothDevice.select(event.device)
+            MainEvent.TableLoad -> tableLoad()
         }
     }
 
@@ -235,13 +235,13 @@ class MainViewModel : ViewModel() {
             .amount(amount)
             .option(option)
             .installments(installments)
-            .callback(object : Callback<mPOSPaymentResponse>() {
+            .callback(object : Callback<PayResponse>() {
                 override fun onStart() {
                     Log.d(TAG, "onStart")
                     state = state.copy(status = Status.MESSAGE, message = "Iniciando")
                 }
 
-                override fun onSuccess(response: mPOSPaymentResponse) {
+                override fun onSuccess(response: PayResponse) {
                     Log.d(TAG, "onSuccess")
                     state = state.copy(status = Status.MESSAGE, message = "SUCESSO")
                 }
@@ -306,10 +306,6 @@ class MainViewModel : ViewModel() {
                 override fun onFail(error: Throwable) {
                 }
             })
-            .userInputCallback(object : Callback<UserInput>() {
-                override fun onFail(error: Throwable) {}
-                override fun onSuccess(response: UserInput) {}
-            })
             .qrCodeCallback(object : Callback<QRCodeCallbackRequestField.QRCodeData>() {
                 override fun onSuccess(response: QRCodeCallbackRequestField.QRCodeData) {
                     Log.d(TAG, "onSuccess: response ${response.data}")
@@ -345,7 +341,7 @@ class MainViewModel : ViewModel() {
 
     private fun tableLoad() {
         val tableLoadRequest = MPOSPlugin.createTableLoadRequestBuilder()
-            .callback(object : Callback<mPOSTableLoadResponse>() {
+            .callback(object : Callback<HttpTableLoadResponse>() {
                 override fun onStart() {
                     state = state.copy(status = Status.MESSAGE, message = "Iniciando")
                 }
@@ -404,8 +400,8 @@ class MainViewModel : ViewModel() {
                     state = state.copy(status = Status.FINISHED, message = "")
                 }
             })
-            .voidTransactionCallback(object : Callback<UserSelection<VoidTransaction>>() {
-                override fun onSuccess(response: UserSelection<VoidTransaction>) {
+            .voidTransactionCallback(object : Callback<UserSelection<TransactionData>>() {
+                override fun onSuccess(response: UserSelection<TransactionData>) {
                     voidTransaction = response
                     state = state.copy(
                         transactionsList = voidTransaction!!.items.toList(),
@@ -424,16 +420,6 @@ class MainViewModel : ViewModel() {
 
                 override fun onFail(error: Throwable) {
                 }
-            })
-            .userInputCallback(object : Callback<UserInput>() {
-                override fun onFail(error: Throwable) {}
-
-                override fun onSuccess(response: UserInput) {
-                    if (response.type == UserInputType.PHONE_NUMBER) {
-
-                    }
-                }
-
             })
             .build()
 

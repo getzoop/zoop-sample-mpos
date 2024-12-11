@@ -23,7 +23,9 @@ class MPOSPluginManager(private val credentials: DashboardConfirmationResponse.C
         Zoop.setLogLevel(LogLevel.Trace)
         Zoop.setStrict(false)
         Zoop.setTimeout(15 * 1000L)
-        Zoop.findPlugin<MPOSPlugin>() ?:  Zoop.make<MPOSPlugin>().run(Zoop::plug)
+        Zoop.findPlugin<MPOSPlugin>() ?: MPOSPlugin(Zoop.constructorParameters()).run(
+            Zoop::plug
+        )
     }
 
     fun terminate() {
