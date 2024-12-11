@@ -46,6 +46,8 @@ android {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
+
+        exclude("META-INF/versions/9/previous-compilation-data.bin")
     }
 }
 
@@ -82,7 +84,7 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.40.5")
     kapt("com.google.dagger:hilt-android-compiler:2.40.5")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0-RC")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
 }
