@@ -4,6 +4,7 @@
     <string name="installments">Parcelas</string>
     <string name="enter_the_value">Digite o valor</string>
     <string name="button_continue">Continuar</string>
+    <string name="label_select_device">Selecione um device</string>
     <string name="button_close">Fechar</string>
     <string name="enter">insira</string>
     <string name="qRCode_token">Token QRCode</string>

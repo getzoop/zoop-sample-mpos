@@ -86,6 +86,13 @@ class MainViewModel : ViewModel() {
     }
 
     private fun cancelAction() {
+
+        if (state.status == Status.DISPLAY_BLUETOOTH_LIST) {
+            state = state.copy(
+                status = Status.NONE
+            )
+        }
+
         paymentRequest?.cancel() ?: pixRequest?.cancel() ?: voidTransaction?.cancel()
         ?: voidRequest?.cancel() ?: loginRequest?.cancel()
     }
@@ -102,10 +109,10 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
-                    Log.d(TAG, "Falha ao buscar dispositivos ${error.stackTraceToString()}")
+                    Log.e(TAG, "Falha ao buscar dispositivos ${error.stackTraceToString()}")
                     state =
                         state.copy(
-                            status = Status.MESSAGE,
+                            status = Status.FINISHED,
                             message = "Falha ao buscar dispositivos"
                         )
                 }
@@ -124,7 +131,10 @@ class MainViewModel : ViewModel() {
                 override fun onFail(error: Throwable) {
                     Log.d(TAG, "Falha ao parear dispositivo")
                     state =
-                        state.copy(status = Status.MESSAGE, message = "Falha ao parear dispositivo")
+                        state.copy(
+                            status = Status.FINISHED,
+                            message = "Falha ao parear dispositivo"
+                        )
                 }
 
                 override fun onSuccess(response: PairingStatus) {
@@ -133,8 +143,12 @@ class MainViewModel : ViewModel() {
                     } else {
                         "Falha ao parear dispositivo"
                     }
-                    state =
-                        state.copy(status = Status.MESSAGE, message = message)
+                    state = state.copy(status = Status.MESSAGE, message = message)
+
+                    viewModelScope.launch {
+                        delay(3.seconds)
+                        state = state.copy(status = Status.FINISHED, message = "")
+                    }
                 }
 
             }).build().run(Zoop::post)
@@ -221,8 +235,13 @@ class MainViewModel : ViewModel() {
                     Log.d(TAG, "Exemplo de cor de fonte ${response.color.font}")
                     Log.d(TAG, "Exemplo de cor de botão ${response.color.button}")
                     Log.d(TAG, "Exemplo de logo colorido ${response.logo.coloredBase64}")
+
                     state = state.copy(status = Status.MESSAGE, message = "Login realizado")
 
+                    viewModelScope.launch {
+                        delay(3.seconds)
+                        state = state.copy(status = Status.FINISHED, message = "")
+                    }
                 }
 
             }).build()
@@ -258,7 +277,15 @@ class MainViewModel : ViewModel() {
 
                 override fun onSuccess(response: PayResponse) {
                     Log.d(TAG, "onSuccess")
-                    state = state.copy(status = Status.MESSAGE, message = "SUCESSO")
+
+                    state = state.copy(
+                        status = Status.MESSAGE,
+                        message = "Pagamento aprovado com sucesso"
+                    )
+                    viewModelScope.launch {
+                        delay(3.seconds)
+                        state = state.copy(status = Status.FINISHED, message = "")
+                    }
                 }
 
                 override fun onFail(error: Throwable) {
@@ -270,7 +297,7 @@ class MainViewModel : ViewModel() {
                         error.message
                     }
 
-                    state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
+                    state = state.copy(status = Status.FINISHED, message = message ?: "Falha")
                 }
 
             })
@@ -283,6 +310,10 @@ class MainViewModel : ViewModel() {
                 override fun onFail(error: Throwable) {
                     error.printStackTrace()
                     Log.e(TAG, "messageCallback fail")
+                    state = state.copy(
+                        status = Status.FINISHED,
+                        message = error.message ?: "Falha no pagamento"
+                    )
                 }
             })
             .build()
@@ -301,7 +332,13 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onSuccess(response: mPOSPixPaymentResponse) {
-                    state = state.copy(status = Status.MESSAGE, message = "SUCESSO")
+                    state =
+                        state.copy(status = Status.MESSAGE, message = "Pix aprovado com sucesso")
+
+                    viewModelScope.launch {
+                        delay(3.seconds)
+                        state = state.copy(status = Status.FINISHED, message = "")
+                    }
                 }
 
                 override fun onFail(error: Throwable) {
@@ -310,8 +347,7 @@ class MainViewModel : ViewModel() {
                     } else {
                         error.message
                     }
-
-                    state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
+                    state = state.copy(status = Status.FINISHED, message = message ?: "Falha")
                 }
 
             })
@@ -321,6 +357,11 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
+                    error.printStackTrace()
+                    state = state.copy(
+                        status = Status.FINISHED,
+                        message = error.message ?: "Falha no pagamento"
+                    )
                 }
             })
             .qrCodeCallback(object : Callback<QRCodeCallbackRequestField.QRCodeData>() {
@@ -330,7 +371,11 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
-
+                    error.printStackTrace()
+                    state = state.copy(
+                        status = Status.FINISHED,
+                        message = error.message ?: "Falha no QRcode"
+                    )
                 }
             }).build()
 
@@ -365,7 +410,16 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onSuccess(response: mPOSTableLoadResponse) {
-                    state = state.copy(status = Status.MESSAGE, message = "SUCESSO")
+                    Log.d(TAG, "onSuccess: response $response")
+                    state = state.copy(
+                        status = Status.MESSAGE,
+                        message = "Tabela atualizada com sucesso"
+                    )
+
+                    viewModelScope.launch {
+                        delay(3.seconds)
+                        state = state.copy(status = Status.FINISHED, message = "")
+                    }
                 }
 
                 override fun onFail(error: Throwable) {
@@ -377,7 +431,7 @@ class MainViewModel : ViewModel() {
                     } else {
                         error.message
                     }
-                    state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
+                    state = state.copy(status = Status.FINISHED, message = message ?: "Falha")
                 }
 
             })
@@ -389,6 +443,10 @@ class MainViewModel : ViewModel() {
                 override fun onFail(error: Throwable) {
                     error.printStackTrace()
                     Log.d(TAG, "onFail: ${error.localizedMessage}")
+                    state = state.copy(
+                        status = Status.FINISHED,
+                        message = error.message ?: "Falha na carga de tabela"
+                    )
                 }
             })
             .build()
@@ -442,7 +500,7 @@ class MainViewModel : ViewModel() {
                     error.printStackTrace()
                     Log.d(TAG, "voidTransactionCallback onFail: error ${error.localizedMessage}")
                     state = state.copy(
-                        status = Status.MESSAGE,
+                        status = Status.FINISHED,
                         message = error.message ?: "Falha na operação"
                     )
                 }
@@ -456,7 +514,7 @@ class MainViewModel : ViewModel() {
                     error.printStackTrace()
                     Log.d(TAG, "messageCallback onFail: error ${error.localizedMessage}")
                     state = state.copy(
-                        status = Status.MESSAGE,
+                        status = Status.FINISHED,
                         message = error.message ?: "Falha na operação"
                     )
                 }
