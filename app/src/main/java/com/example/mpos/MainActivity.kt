@@ -24,12 +24,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -67,8 +66,11 @@ import com.example.mpos.util.LifecycleOwnerPermission
 import com.example.mpos.util.MPOSPluginManager
 import com.example.mpos.util.rememberQrBitmapPainter
 import com.zoop.pos.Zoop
+import com.zoop.pos.collection.TransactionData
 import com.zoop.pos.type.Option
 import com.zoop.sdk.plugin.mpos.MPOSPlugin
+import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothDevice
+import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothFamily
 
 class MainActivity : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -111,13 +113,24 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
     LifecycleOwnerPermission()
+
     MPOSPluginManager().initialize(LocalContext.current)
+    Zoop.findPlugin<MPOSPlugin>() ?: MPOSPlugin(Zoop.constructorParameters()).run(Zoop::plug)
+
+    App(
+        state = viewModel.state,
+        handle = viewModel::handle
+    )
+}
+
+@Composable
+private fun App(
+    state: MainState,
+    handle: (MainEvent) -> Unit
+) {
     var isPaymentPix by remember { mutableStateOf(false) }
 
-    Zoop.findPlugin<MPOSPlugin>() ?: MPOSPlugin(Zoop.constructorParameters()).run(
-        Zoop::plug
-    )
-    Log.d("MainScreen", "Status: ${viewModel.state.status}")
+    Log.d("MainScreen", "Status: ${state.status}")
 
     Column(
         modifier = Modifier
@@ -126,136 +139,136 @@ fun MainScreen(viewModel: MainViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
 
-        Row(modifier = Modifier.padding(15.dp)) {
-            Button(
-                onClick = { viewModel.handle(MainEvent.OnStartLogin) },
-                modifier = Modifier.padding(5.dp)
-            ) {
-                Text(
-                    text = "Login",
-                    modifier = Modifier.padding(8.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            Button(
-                onClick = { viewModel.handle(MainEvent.OnStartBluetooth) },
-                modifier = Modifier.padding(5.dp)
-            ) {
-                Text(
-                    text = "Bluetooth",
-                    modifier = Modifier.padding(8.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-        }
-
-        Row(modifier = Modifier.padding(15.dp)) {
-            Button(
-                onClick = {
-                    viewModel.handle(MainEvent.OnOptionPayment)
-                    isPaymentPix = false
-                },
-                modifier = Modifier.padding(5.dp)
-            ) {
-                Text(
-                    text = "Venda",
-                    modifier = Modifier.padding(8.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            Button(
-                onClick = {
-                    viewModel.handle(MainEvent.OnOptionPayment)
-                    isPaymentPix = true
-                },
-                modifier = Modifier.padding(5.dp)
-            ) {
-                Text(
-                    text = "Pix",
-                    modifier = Modifier.padding(8.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-        }
-
-        Row(modifier = Modifier.padding(15.dp)) {
-            Button(
-                onClick = { viewModel.handle(MainEvent.OnStartCancellation) },
-                modifier = Modifier.padding(5.dp)
-            ) {
-                Text(
-                    text = "Cancelamento",
-                    modifier = Modifier.padding(8.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            Button(
-                onClick = { viewModel.handle(MainEvent.OnWriteDisplay("Mensagem de teste")) },
-                modifier = Modifier.padding(5.dp)
-            ) {
-                Text(
-                    text = "Mensagem na Tela",
-                    modifier = Modifier.padding(8.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-        }
-
-        Button(
-            onClick = { viewModel.handle(MainEvent.TableLoad) },
-            modifier = Modifier.padding(5.dp)
+        if (state.status == Status.NONE ||
+            state.status == Status.FINISHED
         ) {
-            Text(
-                text = "Carga de tabela",
-                modifier = Modifier.padding(8.dp),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+
+            Row(modifier = Modifier.padding(15.dp)) {
+                Button(
+                    onClick = { handle(MainEvent.OnStartLogin) },
+                    modifier = Modifier.padding(5.dp)
+                ) {
+                    Text(
+                        text = "Login",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                Button(
+                    onClick = { handle(MainEvent.OnStartBluetooth) },
+                    modifier = Modifier.padding(5.dp)
+                ) {
+                    Text(
+                        text = "Bluetooth",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Row(modifier = Modifier.padding(15.dp)) {
+                Button(
+                    onClick = {
+                        handle(MainEvent.OnOptionPayment)
+                        isPaymentPix = false
+                    },
+                    modifier = Modifier.padding(5.dp)
+                ) {
+                    Text(
+                        text = "Venda",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        handle(MainEvent.OnOptionPayment)
+                        isPaymentPix = true
+                    },
+                    modifier = Modifier.padding(5.dp)
+                ) {
+                    Text(
+                        text = "Pix",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Row(modifier = Modifier.padding(15.dp)) {
+                Button(
+                    onClick = { handle(MainEvent.OnStartCancellation) },
+                    modifier = Modifier.padding(5.dp)
+                ) {
+                    Text(
+                        text = "Cancelamento",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                Button(
+                    onClick = { handle(MainEvent.OnWriteDisplay("Mensagem de teste")) },
+                    modifier = Modifier.padding(5.dp)
+                ) {
+                    Text(
+                        text = "Mensagem na Tela",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Button(
+                onClick = { handle(MainEvent.TableLoad) },
+                modifier = Modifier.padding(5.dp)
+            ) {
+                Text(
+                    text = "Carga de tabela",
+                    modifier = Modifier.padding(8.dp),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
         }
 
-        AnimatedVisibility(visible = viewModel.state.status == Status.MESSAGE) {
+        AnimatedVisibility(visible = state.status == Status.MESSAGE) {
             Text(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                text = viewModel.state.message,
+                text = state.message,
                 textAlign = TextAlign.Center
             )
         }
 
-        AnimatedVisibility(
-            visible = viewModel.state.message.contains(
-                stringResource(R.string.enter),
-                true
-            )
-        ) {
-            CancelButton(handler = viewModel::handle)
+        AnimatedVisibility(visible = state.message.contains(stringResource(R.string.enter), true)) {
+            CancelButton(handler = handle)
         }
 
-        AnimatedVisibility(visible = viewModel.state.status == Status.QR_CODE) {
+        AnimatedVisibility(visible = state.status == Status.QR_CODE) {
             Column(
                 modifier = Modifier.padding(top = 15.dp, bottom = 15.dp),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = rememberQrBitmapPainter(viewModel.state.qrCode),
+                    painter = rememberQrBitmapPainter(state.qrCode),
                     contentDescription = stringResource(R.string.qRCode_token),
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier.size(135.dp),
@@ -269,53 +282,90 @@ fun MainScreen(viewModel: MainViewModel) {
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                 )
-                CancelButton(handler = viewModel::handle)
+                CancelButton(handler = handle)
             }
         }
 
-        AnimatedVisibility(visible = viewModel.state.status == Status.DISPLAY_VOID_LIST) {
+        AnimatedVisibility(visible = state.status == Status.DISPLAY_VOID_LIST) {
             Column(
                 modifier = Modifier.padding(top = 15.dp, bottom = 15.dp),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+
                 AssembleVoidTransactionList(
-                    state = viewModel.state,
-                    handler = viewModel::handle
+                    state = state,
+                    handler = handle
                 )
-                CancelButton(handler = viewModel::handle)
+                CancelButton(handler = handle)
             }
         }
 
-        AnimatedVisibility(visible = viewModel.state.status == Status.DISPLAY_BLUETOOTH_LIST) {
+        AnimatedVisibility(visible = state.status == Status.DISPLAY_BLUETOOTH_LIST) {
             Column(
                 modifier = Modifier.padding(top = 15.dp, bottom = 15.dp),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AssembleBluetoothDevicesList(
-                    state = viewModel.state,
-                    handler = viewModel::handle
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.label_select_device),
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
                 )
-                CancelButton(handler = viewModel::handle)
+
+                AssembleBluetoothDevicesList(
+                    state = state,
+                    handler = handle
+                )
+
+                Spacer(modifier = Modifier.padding(vertical = 4.dp))
+
+                if (state.bluetoothDevices.isEmpty())
+                    IndeterminateLinearProgress()
+
+                Spacer(modifier = Modifier.padding(vertical = 4.dp))
+
+                CancelButton(handler = handle)
             }
         }
 
-        AnimatedVisibility(visible = viewModel.state.status == Status.DISPLAY_OPTION_PAYMENT) {
+        AnimatedVisibility(visible = state.status == Status.DISPLAY_OPTION_PAYMENT) {
             ChargePaymentOption(
-                handleCancel = { viewModel.handle(MainEvent.OnDisplayNone) },
+                handleCancel = { handle(MainEvent.OnDisplayNone) },
                 handleEvent = {
                     val (amount, installment, option) = it
                     if (isPaymentPix) {
-                        viewModel.handle(MainEvent.OnStartPix(amount))
+                        handle(MainEvent.OnStartPix(amount))
                     } else {
-                        viewModel.handle(MainEvent.OnStartPayment(amount, installment, option))
+                        handle(MainEvent.OnStartPayment(amount, installment, option))
                     }
                 },
                 isPaymentPix = isPaymentPix
             )
         }
     }
+}
+
+
+@Composable
+fun IndeterminateLinearProgress() {
+    CircularProgressIndicator(
+        color = MaterialTheme.colorScheme.primary,
+        strokeWidth = 1.dp,
+        modifier = Modifier.size(30.dp)
+    )
+
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AppPreview() {
+    App(
+        state = MainState(status = Status.DISPLAY_BLUETOOTH_LIST,
+            bluetoothDevices = (1..100).map { devices }),
+    ) {}
 }
 
 @Composable
@@ -557,12 +607,23 @@ fun AssembleVoidTransactionList(state: MainState, handler: (MainEvent) -> Unit) 
     }
 }
 
+@Preview(showBackground = true, name = "AssembleVoidTransactionList")
+@Composable
+fun AssembleVoidTransactionListPreview() {
+    AssembleVoidTransactionList(
+        state = MainState(
+            status = Status.DISPLAY_VOID_LIST,
+            transactionsList = (1..100).map { transactionData }
+        )
+    ) {}
+}
+
 @Composable
 fun AssembleBluetoothDevicesList(state: MainState, handler: (MainEvent) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.80f)
+            .fillMaxHeight(0.50f)
             .padding(top = 15.dp, bottom = 15.dp),
         verticalArrangement = Arrangement.Top
     ) {
@@ -597,5 +658,54 @@ fun AssembleBluetoothDevicesList(state: MainState, handler: (MainEvent) -> Unit)
         }
     }
 }
+
+@Preview(showBackground = true, name = "AssembleBluetoothDevicesList")
+@Composable
+fun AssembleBluetoothDevicesListPreview(modifier: Modifier = Modifier) {
+    val bluetoothDevices = (1..100).map { devices }
+    AssembleBluetoothDevicesList(
+        state = MainState(
+            status = Status.DISPLAY_BLUETOOTH_LIST,
+            bluetoothDevices = bluetoothDevices
+        )
+    ) {}
+}
+
+private val devices = BluetoothDevice(
+    "Device One",
+    "00:00:00:00",
+    BluetoothFamily.Classic,
+)
+
+private val transactionData = TransactionData(
+    value = 1,
+    paymentType = PaymentType.CREDIT.ordinal,
+    installments = 1,
+    "Approved",
+    "Brad",
+    "Address",
+    "SellerName",
+    "0001",
+    "Pan",
+    "001",
+    "DocumentType",
+    "Document",
+    "nsu",
+    "2021-12-12",
+    "12:00",
+    "123",
+    "123",
+    "01010101",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+)
 
 
