@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.zoop.pos.Zoop
 import com.zoop.pos.collection.SmsParameters
 import com.zoop.pos.collection.TransactionData
@@ -29,10 +30,14 @@ import com.zoop.sdk.plugin.mpos.request.mPOSPixPaymentResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSSendSMSResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSTableLoadResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSVoidResponse
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.seconds
 
 
-class MainViewModel : ViewModel()  {
+class MainViewModel : ViewModel() {
 
     var state by mutableStateOf(MainState(status = Status.NONE))
         private set
@@ -229,7 +234,17 @@ class MainViewModel : ViewModel()  {
     private fun payment(amount: Long, installments: Int, option: Option) {
         loginRequest = null
         voidRequest = null
-        Log.d(TAG, "payment: ${String.format("amount: %s, installments: %s, option: %s", amount, installments, option)}")
+        Log.d(
+            TAG,
+            "payment: ${
+                String.format(
+                    "amount: %s, installments: %s, option: %s",
+                    amount,
+                    installments,
+                    option
+                )
+            }"
+        )
 
         paymentRequest = MPOSPlugin.createPaymentRequestBuilder()
             .amount(amount)
@@ -313,6 +328,7 @@ class MainViewModel : ViewModel()  {
                     Log.d(TAG, "onSuccess: response ${response.data}")
                     state = state.copy(status = Status.QR_CODE, qrCode = response.data)
                 }
+
                 override fun onFail(error: Throwable) {
 
                 }
@@ -397,7 +413,7 @@ class MainViewModel : ViewModel()  {
 
                 override fun onFail(error: Throwable) {
                     error.printStackTrace()
-                    Log.d(TAG, "onFail: error ${error.localizedMessage}")
+                    Log.d(TAG, "callback onFail: error ${error.message}")
 
                     state = state.copy(
                         status = Status.MESSAGE,
@@ -407,7 +423,10 @@ class MainViewModel : ViewModel()  {
                 }
 
                 override fun onComplete() {
-                    state = state.copy(status = Status.FINISHED, message = "")
+                    viewModelScope.launch(Dispatchers.Main) {
+                        delay(5.seconds)
+                        state = state.copy(status = Status.FINISHED, message = "")
+                    }
                 }
             })
             .voidTransactionCallback(object : Callback<UserSelection<TransactionData>>() {
@@ -421,7 +440,11 @@ class MainViewModel : ViewModel()  {
 
                 override fun onFail(error: Throwable) {
                     error.printStackTrace()
-                    Log.d(TAG, "onFail: error ${error.localizedMessage}")
+                    Log.d(TAG, "voidTransactionCallback onFail: error ${error.localizedMessage}")
+                    state = state.copy(
+                        status = Status.MESSAGE,
+                        message = error.message ?: "Falha na operação"
+                    )
                 }
             })
             .messageCallback(object : Callback<MessageCallbackRequestField.MessageData>() {
@@ -431,7 +454,11 @@ class MainViewModel : ViewModel()  {
 
                 override fun onFail(error: Throwable) {
                     error.printStackTrace()
-                    Log.d(TAG, "onFail: error ${error.localizedMessage}")
+                    Log.d(TAG, "messageCallback onFail: error ${error.localizedMessage}")
+                    state = state.copy(
+                        status = Status.MESSAGE,
+                        message = error.message ?: "Falha na operação"
+                    )
                 }
             })
             .build()
