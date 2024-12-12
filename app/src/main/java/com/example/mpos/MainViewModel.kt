@@ -9,7 +9,6 @@ import com.zoop.pos.Zoop
 import com.zoop.pos.collection.SmsParameters
 import com.zoop.pos.collection.TransactionData
 import com.zoop.pos.collection.UserSelection
-import com.zoop.pos.collection.VoidTransaction
 import com.zoop.pos.exception.ZoopRequestCanceledException
 import com.zoop.pos.plugin.DashboardConfirmationResponse
 import com.zoop.pos.plugin.DashboardThemeResponse
@@ -33,7 +32,7 @@ import com.zoop.sdk.plugin.mpos.request.mPOSVoidResponse
 import java.util.concurrent.TimeUnit
 
 
-class MainViewModel : ViewModel() {
+class MainViewModel : ViewModel()  {
 
     var state by mutableStateOf(MainState(status = Status.NONE))
         private set
@@ -231,6 +230,7 @@ class MainViewModel : ViewModel() {
         loginRequest = null
         voidRequest = null
         Log.d(TAG, "payment: ${String.format("amount: %s, installments: %s, option: %s", amount, installments, option)}")
+
         paymentRequest = MPOSPlugin.createPaymentRequestBuilder()
             .amount(amount)
             .option(option)
@@ -353,12 +353,14 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
+                    error.printStackTrace()
+                    Log.d(TAG, "onFail: ${error.localizedMessage}")
+
                     val message = if (error.message?.contains("invalid session") == true) {
                         "Não foi realizado um login"
                     } else {
                         error.message
                     }
-
                     state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
                 }
 
@@ -369,6 +371,8 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
+                    error.printStackTrace()
+                    Log.d(TAG, "onFail: ${error.localizedMessage}")
                 }
             })
             .build()
@@ -386,11 +390,15 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onSuccess(response: mPOSVoidResponse) {
+                    Log.d(TAG, "onSuccess: response $response")
                     state = state.copy(status = Status.MESSAGE, message = "Cancelamento realizado")
                     voidTransaction = null
                 }
 
                 override fun onFail(error: Throwable) {
+                    error.printStackTrace()
+                    Log.d(TAG, "onFail: error ${error.localizedMessage}")
+
                     state = state.copy(
                         status = Status.MESSAGE,
                         message = error.message ?: "Falha na operação"
@@ -412,8 +420,9 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
+                    error.printStackTrace()
+                    Log.d(TAG, "onFail: error ${error.localizedMessage}")
                 }
-
             })
             .messageCallback(object : Callback<MessageCallbackRequestField.MessageData>() {
                 override fun onSuccess(response: MessageCallbackRequestField.MessageData) {
@@ -421,6 +430,8 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onFail(error: Throwable) {
+                    error.printStackTrace()
+                    Log.d(TAG, "onFail: error ${error.localizedMessage}")
                 }
             })
             .build()
