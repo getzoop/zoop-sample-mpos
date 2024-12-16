@@ -65,10 +65,8 @@ import com.example.mpos.ui.theme.SmartPOSTheme
 import com.example.mpos.util.LifecycleOwnerPermission
 import com.example.mpos.util.MPOSPluginManager
 import com.example.mpos.util.rememberQrBitmapPainter
-import com.zoop.pos.Zoop
 import com.zoop.pos.collection.TransactionData
 import com.zoop.pos.type.Option
-import com.zoop.sdk.plugin.mpos.MPOSPlugin
 import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothDevice
 import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothFamily
 
@@ -115,7 +113,6 @@ fun MainScreen(viewModel: MainViewModel) {
     LifecycleOwnerPermission()
 
     MPOSPluginManager().initialize(LocalContext.current)
-    Zoop.findPlugin<MPOSPlugin>() ?: MPOSPlugin(Zoop.constructorParameters()).run(Zoop::plug)
 
     App(
         state = viewModel.state,
