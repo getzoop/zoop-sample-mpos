@@ -24,8 +24,8 @@ import com.zoop.pos.type.Request
 import com.zoop.sdk.plugin.mpos.MPOSPlugin
 import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothDevice
 import com.zoop.sdk.plugin.mpos.request.PairingStatus
-import com.zoop.sdk.plugin.mpos.request.PayResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSDiscoveryResponse
+import com.zoop.sdk.plugin.mpos.request.mPOSPaymentResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSPixPaymentResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSSendSMSResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSTableLoadResponse
@@ -276,13 +276,13 @@ class MainViewModel : ViewModel() {
             .amount(amount)
             .option(option)
             .installments(installments)
-            .callback(object : Callback<PayResponse>() {
+            .callback(object : Callback<mPOSPaymentResponse>() {
                 override fun onStart() {
                     Log.d(TAG, "onStart")
                     state = state.copy(status = Status.MESSAGE, message = "Iniciando")
                 }
 
-                override fun onSuccess(response: PayResponse) {
+                override fun onSuccess(response: mPOSPaymentResponse) {
                     Log.d(TAG, "onSuccess")
 
                     state = state.copy(
