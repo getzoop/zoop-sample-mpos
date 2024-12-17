@@ -63,7 +63,7 @@ import androidx.compose.ui.unit.sp
 import com.example.mpos.extension.convertToLong
 import com.example.mpos.ui.theme.SmartPOSTheme
 import com.example.mpos.util.LifecycleOwnerPermission
-import com.example.mpos.util.MPOSPluginManager
+import com.example.mpos.util.MPosPluginManager
 import com.example.mpos.util.rememberQrBitmapPainter
 import com.zoop.pos.collection.TransactionData
 import com.zoop.pos.type.Option
@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(viewModel: MainViewModel) {
     LifecycleOwnerPermission()
 
-    MPOSPluginManager().initialize(LocalContext.current)
+    MPosPluginManager().initialize(LocalContext.current)
 
     App(
         state = viewModel.state,

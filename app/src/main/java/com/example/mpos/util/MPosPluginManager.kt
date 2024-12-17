@@ -7,7 +7,7 @@ import com.zoop.pos.type.Environment
 import com.zoop.pos.type.LogLevel
 import com.zoop.sdk.plugin.mpos.MPOSPlugin
 
-class MPOSPluginManager(private val credentials: DashboardConfirmationResponse.Credentials? = null) {
+class MPosPluginManager(private val credentials: DashboardConfirmationResponse.Credentials? = null) {
 
     fun initialize(context: Context) {
         Zoop.initialize(context) {
