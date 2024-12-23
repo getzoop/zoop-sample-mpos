@@ -30,22 +30,17 @@ import com.zoop.sdk.plugin.mpos.request.mPOSPixPaymentResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSSendSMSResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSTableLoadResponse
 import com.zoop.sdk.plugin.mpos.request.mPOSVoidResponse
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.seconds
 
-
 class MainViewModel : ViewModel() {
-
     var state by mutableStateOf(MainState(status = Status.NONE))
         private set
+    private var currentCancellableRequest: Request? = null
     private var voidTransaction: UserSelection<TransactionData>? = null
-    private var paymentRequest: Request? = null
-    private var voidRequest: Request? = null
-    private var loginRequest: Request? = null
-    private var pixRequest: Request? = null
+    private var latestTransaction: TransactionData? = null
     private lateinit var bluetoothDevice: UserSelection<BluetoothDevice>
 
     private companion object {
@@ -54,8 +49,8 @@ class MainViewModel : ViewModel() {
 
     fun handle(event: MainEvent) {
         when (event) {
-            MainEvent.OnStartBluetooth -> bluetooth()
-            MainEvent.OnStartLogin -> login()
+            is MainEvent.OnStartBluetooth -> bluetooth()
+            is MainEvent.OnStartLogin -> login()
             is MainEvent.OnOptionPayment -> onOptionPayment()
             is MainEvent.OnStartPayment -> payment(
                 amount = event.amount,
@@ -64,21 +59,23 @@ class MainViewModel : ViewModel() {
             )
 
             is MainEvent.OnStartPix -> pix(event.amount)
-            MainEvent.OnStartCancellation -> void()
-            MainEvent.OnCancelAction -> cancelAction()
-            MainEvent.OnDisplayNone -> restoreUI()
+            is MainEvent.OnStartCancellation -> void()
+            is MainEvent.OnCancelAction -> cancelAction()
+            is MainEvent.OnDisplayNone -> restoreUI()
             is MainEvent.OnWriteDisplay -> writeToDisplay(event.message)
             is MainEvent.OnSelectTransaction -> {
                 voidTransaction?.select(event.transaction)
             }
 
             is MainEvent.OnSelectBtDevice -> bluetoothDevice.select(event.device)
-            MainEvent.TableLoad -> tableLoad()
+            is MainEvent.OnTableLoad -> tableLoad()
+            is MainEvent.OnStartSms -> askPhoneNumber()
+            is MainEvent.OnSendSms -> sendSms(event.phoneNumber)
         }
     }
 
     private fun restoreUI() {
-        state = state.copy(status = Status.NONE)
+        state = MainState(status = Status.NONE)
     }
 
     private fun onOptionPayment() {
@@ -86,15 +83,18 @@ class MainViewModel : ViewModel() {
     }
 
     private fun cancelAction() {
-
         if (state.status == Status.DISPLAY_BLUETOOTH_LIST) {
             state = state.copy(
                 status = Status.NONE
             )
         }
 
-        paymentRequest?.cancel() ?: pixRequest?.cancel() ?: voidTransaction?.cancel()
-        ?: voidRequest?.cancel() ?: loginRequest?.cancel()
+        voidTransaction?.also {
+            it.cancel()
+        } ?: currentCancellableRequest?.also {
+            currentCancellableRequest = null
+            it.cancel()
+        }
     }
 
     private fun bluetooth() {
@@ -128,7 +128,6 @@ class MainViewModel : ViewModel() {
                         bluetoothDevices = response.available.items.toList()
                     )
                 }
-
             })
             .pairingCallback(object : Callback<PairingStatus>() {
                 override fun onFail(error: Throwable) {
@@ -152,14 +151,15 @@ class MainViewModel : ViewModel() {
 
                     updateStatusToFinish()
                 }
-
-            }).build().run(Zoop::post)
+            })
+            .build()
+            .run(Zoop::post)
     }
 
     private fun login() {
-        paymentRequest = null
-        voidRequest = null
-        loginRequest = ZoopFoundationPlugin.createDashboardActivationRequestBuilder()
+        voidTransaction = null
+
+        val loginRequest = ZoopFoundationPlugin.createDashboardActivationRequestBuilder()
             .tokenCallback(object : Callback<DashboardTokenResponse>() {
                 override fun onStart() {
                     state = state.copy(status = Status.MESSAGE, message = "Requisitando token")
@@ -180,7 +180,6 @@ class MainViewModel : ViewModel() {
                         message = "Insira o token no dashboard: ${response.token}"
                     )
                 }
-
             })
             .confirmCallback(object : Callback<DashboardConfirmationResponse>() {
                 override fun onFail(error: Throwable) {
@@ -222,11 +221,9 @@ class MainViewModel : ViewModel() {
                         message = "SellerName: ${response.owner.name}"
                     )
                 }
-
             })
             .themeCallback(object : Callback<DashboardThemeResponse>() {
                 override fun onStart() {
-                    if (loginRequest?.isCancelRequested == true) return
                     state = state.copy(status = Status.MESSAGE, message = "Baixando temas")
                 }
 
@@ -250,16 +247,15 @@ class MainViewModel : ViewModel() {
 
                     updateStatusToFinish()
                 }
+            })
+            .build()
 
-            }).build()
-
-        Zoop.post(loginRequest!!)
-
+        Zoop.post(loginRequest)
     }
 
     private fun payment(amount: Long, installments: Int, option: Option) {
-        loginRequest = null
-        voidRequest = null
+        voidTransaction = null
+
         Log.d(
             TAG,
             "payment: ${
@@ -272,7 +268,7 @@ class MainViewModel : ViewModel() {
             }"
         )
 
-        paymentRequest = MPOSPlugin.createPaymentRequestBuilder()
+        val paymentRequest = MPOSPlugin.createPaymentRequestBuilder()
             .amount(amount)
             .option(option)
             .installments(installments)
@@ -285,12 +281,11 @@ class MainViewModel : ViewModel() {
                 override fun onSuccess(response: mPOSPaymentResponse) {
                     Log.d(TAG, "onSuccess")
 
+                    latestTransaction = response.transactionData
                     state = state.copy(
                         status = Status.MESSAGE,
                         message = "Pagamento aprovado com sucesso"
                     )
-
-                    updateStatusToFinish()
                 }
 
                 override fun onFail(error: Throwable) {
@@ -303,9 +298,11 @@ class MainViewModel : ViewModel() {
                     }
 
                     state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
-                    updateStatusToFinish()
                 }
 
+                override fun onComplete() {
+                    updateStatusToFinish()
+                }
             })
             .messageCallback(object : Callback<MessageCallbackRequestField.MessageData>() {
                 override fun onSuccess(response: MessageCallbackRequestField.MessageData) {
@@ -324,14 +321,17 @@ class MainViewModel : ViewModel() {
                 }
             })
             .build()
+            .also { currentCancellableRequest = it }
 
-        Zoop.post(paymentRequest!!)
+        Zoop.post(paymentRequest)
     }
 
     private fun pix(amount: Long) {
         Log.d(TAG, "pix: ${String.format("amount: %s", amount)}")
 
-        pixRequest = MPOSPlugin.createPixPaymentRequestBuilder()
+        voidTransaction = null
+
+        val pixRequest = MPOSPlugin.createPixPaymentRequestBuilder()
             .amount(amount)
             .callback(object : Callback<mPOSPixPaymentResponse>() {
                 override fun onStart() {
@@ -339,10 +339,8 @@ class MainViewModel : ViewModel() {
                 }
 
                 override fun onSuccess(response: mPOSPixPaymentResponse) {
-                    state =
-                        state.copy(status = Status.MESSAGE, message = "Pix aprovado com sucesso")
-
-                    updateStatusToFinish()
+                    latestTransaction = response.transactionData
+                    state = state.copy(status = Status.MESSAGE, message = "Pix aprovado com sucesso")
                 }
 
                 override fun onFail(error: Throwable) {
@@ -351,7 +349,10 @@ class MainViewModel : ViewModel() {
                     } else {
                         error.message
                     }
-                    state = state.copy(status = Status.FINISHED, message = message ?: "Falha")
+                    state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
+                }
+
+                override fun onComplete() {
                     updateStatusToFinish()
                 }
             })
@@ -383,29 +384,82 @@ class MainViewModel : ViewModel() {
                     )
                     updateStatusToFinish()
                 }
-            }).build()
+            })
+            .build()
+            .also { currentCancellableRequest = it }
 
-        Zoop.post(pixRequest!!)
+        Zoop.post(pixRequest)
     }
 
-    private fun sms(transactionData: TransactionData) {
-        val phoneNumber = "5511999999999"
-        MPOSPlugin.createSendSMSRequestBuilder()
+    private fun askPhoneNumber() {
+        if (latestTransaction == null) {
+            state = state.copy(
+                status = Status.MESSAGE,
+                message = "Nenhuma transação recente para enviar SMS"
+            )
+
+            updateStatusToFinish()
+
+            return
+        }
+
+        state = MainState(status = Status.ASK_PHONE_NUMBER)
+    }
+
+    private fun sendSms(phoneNumber: String) {
+        val transactionData = latestTransaction ?: run {
+            state = state.copy(
+                status = Status.MESSAGE,
+                message = "Nenhuma transação recente para enviar SMS"
+            )
+
+            updateStatusToFinish()
+
+            return
+        }
+
+        val sanitizedPhoneNumber =
+            if (phoneNumber.length >= 12 && phoneNumber.startsWith("55")) {
+                phoneNumber
+            } else {
+                "55$phoneNumber"
+            }
+
+        val smsRequest = MPOSPlugin.createSendSMSRequestBuilder()
             .smsParameters(
                 SmsParameters(
-                    transactionData,
-                    phoneNumber = phoneNumber
+                    transactionData = transactionData,
+                    phoneNumber = sanitizedPhoneNumber,
                 )
             )
             .callback(object : Callback<mPOSSendSMSResponse>() {
+                override fun onStart() {
+                    state = MainState(status = Status.SENDING_SMS)
+                }
+
                 override fun onFail(error: Throwable) {
                     Log.d(TAG, "onFail SMS ${error.message}")
+                    state = state.copy(
+                        status = Status.MESSAGE,
+                        message = error.message ?: "Falha ao enviar SMS",
+                    )
                 }
 
                 override fun onSuccess(response: mPOSSendSMSResponse) {
                     Log.d(TAG, "onSuccess send SMS: $response")
+                    state = state.copy(
+                        status = Status.MESSAGE,
+                        message = "SMS enviado com sucesso!",
+                    )
                 }
-            }).build().run(Zoop::post)
+
+                override fun onComplete() {
+                    updateStatusToFinish()
+                }
+            })
+            .build()
+
+        Zoop.post(smsRequest)
     }
 
     private fun tableLoad() {
@@ -421,8 +475,6 @@ class MainViewModel : ViewModel() {
                         status = Status.MESSAGE,
                         message = "Tabela atualizada com sucesso"
                     )
-
-                    updateStatusToFinish()
                 }
 
                 override fun onFail(error: Throwable) {
@@ -434,8 +486,11 @@ class MainViewModel : ViewModel() {
                     } else {
                         error.message
                     }
-                    state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
 
+                    state = state.copy(status = Status.MESSAGE, message = message ?: "Falha")
+                }
+
+                override fun onComplete() {
                     updateStatusToFinish()
                 }
             })
@@ -461,9 +516,9 @@ class MainViewModel : ViewModel() {
     }
 
     private fun void() {
-        loginRequest = null
-        paymentRequest = null
-        voidRequest = MPOSPlugin.createVoidRequestBuilder()
+        voidTransaction = null
+
+        val voidRequest = MPOSPlugin.createVoidRequestBuilder()
             .callback(object : Callback<mPOSVoidResponse>() {
                 override fun onStart() {
                     state = state.copy(status = Status.MESSAGE, message = "Processando")
@@ -471,8 +526,11 @@ class MainViewModel : ViewModel() {
 
                 override fun onSuccess(response: mPOSVoidResponse) {
                     Log.d(TAG, "onSuccess: response $response")
-                    state = state.copy(status = Status.MESSAGE, message = "Cancelamento realizado")
-                    voidTransaction = null
+                    latestTransaction = response.transactionData
+                    state = state.copy(
+                        status = Status.MESSAGE,
+                        message = "Cancelamento realizado"
+                    )
                 }
 
                 override fun onFail(error: Throwable) {
@@ -483,15 +541,12 @@ class MainViewModel : ViewModel() {
                         status = Status.MESSAGE,
                         message = error.message ?: "Falha na operação"
                     )
-                    voidTransaction = null
-                    updateStatusToFinish()
                 }
 
                 override fun onComplete() {
-                    viewModelScope.launch(Dispatchers.Main) {
-                        delay(5.seconds)
-                        state = state.copy(status = Status.FINISHED, message = "")
-                    }
+                    voidTransaction = null
+
+                    updateStatusToFinish()
                 }
             })
             .voidTransactionCallback(object : Callback<UserSelection<TransactionData>>() {
@@ -531,8 +586,9 @@ class MainViewModel : ViewModel() {
                 }
             })
             .build()
+            .also { currentCancellableRequest = it }
 
-        Zoop.post(voidRequest!!)
+        Zoop.post(voidRequest)
     }
 
     private fun updateStatusToFinish() {

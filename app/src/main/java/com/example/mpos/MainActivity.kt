@@ -125,21 +125,16 @@ private fun App(
     state: MainState,
     handle: (MainEvent) -> Unit
 ) {
-    var isPaymentPix by remember { mutableStateOf(false) }
-
     Log.d("MainScreen", "Status: ${state.status}")
 
+    var isPaymentPix by remember { mutableStateOf(value = false) }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-
-        if (state.status == Status.NONE ||
-            state.status == Status.FINISHED
-        ) {
-
+        if (state.status == Status.NONE || state.status == Status.FINISHED) {
             Row(modifier = Modifier.padding(15.dp)) {
                 Button(
                     onClick = { handle(MainEvent.OnStartLogin) },
@@ -230,17 +225,32 @@ private fun App(
                 }
             }
 
-            Button(
-                onClick = { handle(MainEvent.TableLoad) },
-                modifier = Modifier.padding(5.dp)
-            ) {
-                Text(
-                    text = "Carga de tabela",
-                    modifier = Modifier.padding(8.dp),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+            Row(modifier = Modifier.padding(15.dp)) {
+                Button(
+                    onClick = { handle(MainEvent.OnStartSms) },
+                    modifier = Modifier.padding(5.dp),
+                ) {
+                    Text(
+                        text = "SMS",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
+
+                Button(
+                    onClick = { handle(MainEvent.OnTableLoad) },
+                    modifier = Modifier.padding(5.dp)
+                ) {
+                    Text(
+                        text = "Carga de tabela",
+                        modifier = Modifier.padding(8.dp),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
         }
 
@@ -254,7 +264,7 @@ private fun App(
             )
         }
 
-        AnimatedVisibility(visible = state.message.contains(stringResource(R.string.enter), true)) {
+        AnimatedVisibility(visible = state.message.contains(stringResource(R.string.enter), ignoreCase = true)) {
             CancelButton(handler = handle)
         }
 
@@ -272,13 +282,12 @@ private fun App(
                     alignment = Alignment.Center
                 )
 
-
-
                 Spacer(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 12.dp)
                 )
+
                 CancelButton(handler = handle)
             }
         }
@@ -289,11 +298,11 @@ private fun App(
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-
                 AssembleVoidTransactionList(
                     state = state,
                     handler = handle
                 )
+
                 CancelButton(handler = handle)
             }
         }
@@ -319,8 +328,9 @@ private fun App(
 
                 Spacer(modifier = Modifier.padding(vertical = 4.dp))
 
-                if (state.bluetoothDevices.isEmpty())
+                if (state.bluetoothDevices.isEmpty()) {
                     IndeterminateLinearProgress()
+                }
 
                 Spacer(modifier = Modifier.padding(vertical = 4.dp))
 
@@ -331,8 +341,7 @@ private fun App(
         AnimatedVisibility(visible = state.status == Status.DISPLAY_OPTION_PAYMENT) {
             ChargePaymentOption(
                 handleCancel = { handle(MainEvent.OnDisplayNone) },
-                handleEvent = {
-                    val (amount, installment, option) = it
+                handleEvent = { amount, installment, option ->
                     if (isPaymentPix) {
                         handle(MainEvent.OnStartPix(amount))
                     } else {
@@ -342,9 +351,19 @@ private fun App(
                 isPaymentPix = isPaymentPix
             )
         }
+
+        AnimatedVisibility(visible = state.status == Status.ASK_PHONE_NUMBER) {
+            PhoneNumberInput(
+                onCancel = { handle(MainEvent.OnDisplayNone) },
+                onConfirm = { phoneNumber -> handle(MainEvent.OnSendSms(phoneNumber)) },
+            )
+        }
+
+        AnimatedVisibility(visible = state.status == Status.SENDING_SMS) {
+            SendingSmsMessage()
+        }
     }
 }
-
 
 @Composable
 fun IndeterminateLinearProgress() {
@@ -368,7 +387,7 @@ fun AppPreview() {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun ChargePaymentOption(
-    handleEvent: (Triple<Long, Int, Option>) -> Unit,
+    handleEvent: (amount: Long, installments: Int, option: Option) -> Unit,
     handleCancel: () -> Unit,
     isPaymentPix: Boolean = false
 ) {
@@ -526,7 +545,7 @@ private fun ChargePaymentOption(
                         return@Button
                     }
 
-                    handleEvent(Triple(amount, installment, option))
+                    handleEvent(amount, installment, option)
                 }
             ) {
                 Text(text = stringResource(R.string.button_continue))
@@ -540,7 +559,7 @@ private fun ChargePaymentOption(
 fun ChargeDisplayPreview() {
     ChargePaymentOption(
         handleCancel = {},
-        handleEvent = {},
+        handleEvent = { _, _, _ -> },
         isPaymentPix = false
     )
 }
@@ -668,6 +687,84 @@ fun AssembleBluetoothDevicesListPreview(modifier: Modifier = Modifier) {
     ) {}
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PhoneNumberInput(
+    onCancel: () -> Unit,
+    onConfirm: (phoneNumber: String) -> Unit,
+) {
+    var phoneNumber by remember { mutableStateOf(TextFieldValue()) }
+    val context = LocalContext.current
+    val messageInvalidPhoneNumber = stringResource(R.string.message_invalid_phone_number)
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = { phoneNumber = it },
+            label = { Text(stringResource(R.string.enter_phone_number)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            modifier = Modifier.padding(16.dp)
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(
+                onClick = onCancel,
+                modifier = Modifier
+                    .padding(start = 12.dp, end = 4.dp)
+                    .border(
+                        border = BorderStroke(1.dp, color = Color.LightGray),
+                        shape = RoundedCornerShape(24.dp)
+                    ),
+            ) {
+                Text(text = stringResource(R.string.button_close))
+            }
+
+            Button(
+                onClick = {
+                    val phoneNumberStr = phoneNumber.text
+
+                    if (phoneNumberStr.isEmpty()) {
+                        Toast.makeText(context, messageInvalidPhoneNumber, Toast.LENGTH_SHORT).show()
+
+                        return@Button
+                    }
+
+                    onConfirm(phoneNumberStr)
+                },
+                modifier = Modifier
+                    .padding(start = 4.dp, end = 12.dp)
+            ) {
+                Text(text = stringResource(R.string.button_continue))
+            }
+        }
+    }
+}
+
+@Composable
+fun SendingSmsMessage() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.sending_sms),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.padding(8.dp))
+
+        IndeterminateLinearProgress()
+    }
+}
+
 private val devices = BluetoothDevice(
     "Device One",
     "00:00:00:00",
@@ -704,5 +801,3 @@ private val transactionData = TransactionData(
     "",
     "",
 )
-
-
