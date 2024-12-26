@@ -63,10 +63,7 @@ class MainViewModel : ViewModel() {
             is MainEvent.OnCancelAction -> cancelAction()
             is MainEvent.OnDisplayNone -> restoreUI()
             is MainEvent.OnWriteDisplay -> writeToDisplay(event.message)
-            is MainEvent.OnSelectTransaction -> {
-                voidTransaction?.select(event.transaction)
-            }
-
+            is MainEvent.OnSelectTransaction -> selectTransactionToVoid(event)
             is MainEvent.OnSelectBtDevice -> bluetoothDevice.select(event.device)
             is MainEvent.OnTableLoad -> tableLoad()
             is MainEvent.OnStartSms -> askPhoneNumber()
@@ -589,6 +586,15 @@ class MainViewModel : ViewModel() {
             .also { currentCancellableRequest = it }
 
         Zoop.post(voidRequest)
+    }
+
+    private fun selectTransactionToVoid(event: MainEvent.OnSelectTransaction) {
+        voidTransaction?.select(event.transaction)
+
+        state = state.copy(
+            status = Status.MESSAGE,
+            message = "Processando…",
+        )
     }
 
     private fun updateStatusToFinish() {
