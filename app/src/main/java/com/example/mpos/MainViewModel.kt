@@ -10,6 +10,7 @@ import com.zoop.pos.Zoop
 import com.zoop.pos.collection.SmsParameters
 import com.zoop.pos.collection.TransactionData
 import com.zoop.pos.collection.UserSelection
+import com.zoop.pos.collection.VoidTransaction
 import com.zoop.pos.exception.ZoopRequestCanceledException
 import com.zoop.pos.plugin.DashboardConfirmationResponse
 import com.zoop.pos.plugin.DashboardThemeResponse
@@ -39,7 +40,7 @@ class MainViewModel : ViewModel() {
     var state by mutableStateOf(MainState(status = Status.NONE))
         private set
     private var currentCancellableRequest: Request? = null
-    private var voidTransaction: UserSelection<TransactionData>? = null
+    private var voidTransaction: UserSelection<VoidTransaction>? = null
     private var latestTransaction: TransactionData? = null
     private lateinit var bluetoothDevice: UserSelection<BluetoothDevice>
 
@@ -546,8 +547,8 @@ class MainViewModel : ViewModel() {
                     updateStatusToFinish()
                 }
             })
-            .voidTransactionCallback(object : Callback<UserSelection<TransactionData>>() {
-                override fun onSuccess(response: UserSelection<TransactionData>) {
+            .voidTransactionCallback(object : Callback<UserSelection<VoidTransaction>>() {
+                override fun onSuccess(response: UserSelection<VoidTransaction>) {
                     voidTransaction = response
                     state = state.copy(
                         transactionsList = voidTransaction!!.items.toList(),

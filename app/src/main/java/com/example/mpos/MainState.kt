@@ -1,6 +1,6 @@
 package com.example.mpos
 
-import com.zoop.pos.collection.TransactionData
+import com.zoop.pos.collection.VoidTransaction
 import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothDevice
 
 data class MainState(
@@ -9,7 +9,7 @@ data class MainState(
     val startLogin: Boolean = false,
     val message: String = "",
     val qrCode: String = "",
-    val transactionsList: List<TransactionData> = listOf(),
+    val transactionsList: List<VoidTransaction> = listOf(),
     val bluetoothDevices: List<BluetoothDevice> = listOf(),
 )
 

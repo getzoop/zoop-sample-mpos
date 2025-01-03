@@ -65,7 +65,8 @@ import com.example.mpos.ui.theme.SmartPOSTheme
 import com.example.mpos.util.LifecycleOwnerPermission
 import com.example.mpos.util.MPosPluginManager
 import com.example.mpos.util.rememberQrBitmapPainter
-import com.zoop.pos.collection.TransactionData
+import com.zoop.pos.collection.VoidTransaction
+import com.zoop.pos.type.CardBrand
 import com.zoop.pos.type.Option
 import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothDevice
 import com.zoop.sdk.plugin.mpos.bluetooth.platform.BluetoothFamily
@@ -599,7 +600,7 @@ fun AssembleVoidTransactionList(state: MainState, handler: (MainEvent) -> Unit) 
                     .clickable { handler(MainEvent.OnSelectTransaction(item)) },
             ) {
                 Text(
-                    text = "R$ " + item.value,
+                    text = "R$ ${item.amount}",
                     modifier = Modifier
                         .padding(horizontal = 10.dp)
                         .align(Alignment.CenterVertically),
@@ -608,7 +609,7 @@ fun AssembleVoidTransactionList(state: MainState, handler: (MainEvent) -> Unit) 
                 )
 
                 Text(
-                    text = "${item.date} ${item.hour}",
+                    text = "${item.date} ${item.time}",
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .weight(1.5f)
@@ -629,7 +630,7 @@ fun AssembleVoidTransactionListPreview() {
     AssembleVoidTransactionList(
         state = MainState(
             status = Status.DISPLAY_VOID_LIST,
-            transactionsList = (1..100).map { transactionData }
+            transactionsList = (1..100).map { voidTransactionData }
         )
     ) {}
 }
@@ -771,33 +772,11 @@ private val devices = BluetoothDevice(
     BluetoothFamily.Classic,
 )
 
-private val transactionData = TransactionData(
-    value = 1,
-    paymentType = PaymentType.CREDIT.ordinal,
-    installments = 1,
-    "Approved",
-    "Brad",
-    "Address",
-    "SellerName",
-    "0001",
-    "Pan",
-    "001",
-    "DocumentType",
-    "Document",
-    "nsu",
-    "2021-12-12",
-    "12:00",
-    "123",
-    "123",
-    "01010101",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
+private val voidTransactionData = VoidTransaction(
+    id = "0123456789abcdef0123456789abcdef",
+    amount = "123,45",
+    option = Option.CREDIT,
+    cardBrand = CardBrand.VISA,
+    date = "03/01/2024",
+    time = "09:30",
 )
