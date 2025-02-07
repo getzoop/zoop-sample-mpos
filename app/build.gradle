@@ -6,12 +6,11 @@ plugins {
 
 android {
     namespace 'com.example.mpos'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.example.mpos"
         minSdk 23
-        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -28,17 +27,17 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '11'
+        jvmTarget = '17'
     }
     buildFeatures {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.4.0'
+        kotlinCompilerExtensionVersion '1.5.10'
     }
     packagingOptions {
         resources {
@@ -48,7 +47,7 @@ android {
 }
 
 dependencies {
-    implementation("br.zoop.pos.plugin:mpos:3.2.0-rc-1-SNAPSHOT")
+    implementation("br.zoop.pos.plugin:mpos:3.3.0-rc-1-SNAPSHOT")
 
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     implementation("com.google.zxing:core:3.5.1")
