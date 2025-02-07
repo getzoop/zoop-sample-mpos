@@ -433,16 +433,6 @@ class MainViewModel : ViewModel() {
                 override fun onFail(error: Throwable) {
                 }
             })
-            .userInputCallback(object : Callback<UserInput>() {
-                override fun onFail(error: Throwable) {}
-
-                override fun onSuccess(response: UserInput) {
-                    if (response.type == UserInputType.PHONE_NUMBER) {
-
-                    }
-                }
-
-            })
             .build()
 
         Zoop.post(voidRequest!!)
