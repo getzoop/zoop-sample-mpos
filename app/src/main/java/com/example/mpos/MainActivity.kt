@@ -214,6 +214,21 @@ fun MainScreen(viewModel: MainViewModel) {
             }
         }
 
+        Button(
+            onClick = { viewModel.handle(MainEvent.OnTableLoad) },
+            modifier = Modifier.padding(5.dp)
+        ) {
+            Text(
+                text = "Carga de tabela",
+                modifier = Modifier.padding(8.dp),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         AnimatedVisibility(visible = viewModel.state.status == Status.MESSAGE) {
             Text(text = viewModel.state.message)
         }

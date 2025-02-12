@@ -8,8 +8,6 @@ import androidx.lifecycle.ViewModel
 import com.zoop.pos.Zoop
 import com.zoop.pos.collection.SmsParameters
 import com.zoop.pos.collection.TransactionData
-import com.zoop.pos.collection.UserInput
-import com.zoop.pos.collection.UserInputType
 import com.zoop.pos.collection.UserSelection
 import com.zoop.pos.collection.VoidTransaction
 import com.zoop.pos.exception.ZoopRequestCanceledException
@@ -72,6 +70,8 @@ class MainViewModel : ViewModel() {
             }
 
             is MainEvent.OnSelectBtDevice -> bluetoothDevice.select(event.device)
+
+            MainEvent.OnTableLoad -> tableLoad()
         }
     }
 
