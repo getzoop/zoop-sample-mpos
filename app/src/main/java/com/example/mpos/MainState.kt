@@ -10,15 +10,17 @@ data class MainState(
     val message: String = "",
     val qrCode: String = "",
     val transactionsList: List<VoidTransaction> = listOf(),
-    val bluetoothDevices: List<BluetoothDevice> = listOf()
+    val bluetoothDevices: List<BluetoothDevice> = listOf(),
 )
 
 enum class Status {
+    NONE,
+    ASK_PHONE_NUMBER,
+    DISPLAY_BLUETOOTH_LIST,
+    DISPLAY_OPTION_PAYMENT,
+    DISPLAY_VOID_LIST,
+    FINISHED,
     MESSAGE,
     QR_CODE,
-    DISPLAY_VOID_LIST,
-    DISPLAY_BLUETOOTH_LIST,
-    FINISHED,
-    DISPLAY_OPTION_PAYMENT,
-    NONE
+    SENDING_SMS,
 }

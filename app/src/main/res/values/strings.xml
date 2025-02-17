@@ -4,11 +4,15 @@
     <string name="installments">Parcelas</string>
     <string name="enter_the_value">Digite o valor</string>
     <string name="button_continue">Continuar</string>
+    <string name="label_select_device">Selecione um device</string>
     <string name="button_close">Fechar</string>
     <string name="enter">insira</string>
     <string name="qRCode_token">Token QRCode</string>
     <string name="cancel_operation">Cancelar operação</string>
     <string name="message_invalid_amount">Digite um valor válido!</string>
     <string name="message_invalid_installment">Digite um valor de parcelas válido!</string>
+    <string name="sending_sms">Enviando SMS…</string>
+    <string name="enter_phone_number">Telefone (dígitos, c/ DDD)</string>
+    <string name="message_invalid_phone_number">Número de telefone inválido!</string>
     <string name="pix_nfc_transaction">Aproxime seu celular do mPos para realizar o pagamento por aproximação</string>
 </resources>
