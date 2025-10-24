@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     name: Build APK
-    runs-on: ubuntu-latest
+    runs-on: pagzoop
     env:
       GITHUB_USER: ${{ secrets.ORG_ZOOP_SDK_GITHUB_USER }}
       GITHUB_PAT: ${{ secrets.ORG_ZOOP_SDK_GITHUB_PASSWORD }}
@@ -51,7 +51,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: pagzoop
 
     steps:
       - name: Checkout
